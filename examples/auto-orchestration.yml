@@ -1,0 +1,64 @@
+name: Claude Auto Orchestration Example
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created, edited]
+
+jobs:
+  claude-auto-orchestration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Claude Code Base Action with Auto Orchestration
+        uses: ./claude-code-base-action
+        with:
+          prompt: |
+            新しいユーザー認証システムを実装してください。
+            
+            要件:
+            - JWT認証の実装
+            - ユーザー登録・ログイン機能
+            - パスワードハッシュ化
+            - セッション管理
+            - セキュリティ対策
+            - 単体テストの作成
+            - APIドキュメントの作成
+            
+            このタスクは複雑なため、自動オーケストレーション機能により
+            適切なサブタスクに分解して実行してください。
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          CLAUDE_AUTO_ORCHESTRATION: "1"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  claude-simple-task:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Claude Code Base Action for Simple Task
+        uses: ./claude-code-base-action
+        with:
+          prompt: "README.mdファイルを更新して、プロジェクトの説明を改善してください"
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          CLAUDE_AUTO_ORCHESTRATION: "1"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  claude-manual-mode:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Claude Code Base Action with Manual Mode
+        uses: ./claude-code-base-action
+        with:
+          prompt: "/architect システムアーキテクチャを設計してください"
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
