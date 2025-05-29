@@ -1,3 +1,4 @@
+import { createContextForSubTask } from "./auto-context-generator";
 import type { SubTask, TaskAnalysisResult } from "./task-analyzer";
 import { analyzeTask } from "./task-analyzer";
 
@@ -5,6 +6,9 @@ export interface OrchestrationConfig {
   maxConcurrentTasks: number;
   timeoutMinutes: number;
   retryAttempts: number;
+  enableAutoContext: boolean;
+  maxContextTokens: number;
+  preserveAllResults: boolean;
 }
 
 export interface TaskExecution {
@@ -28,19 +32,25 @@ export interface OrchestrationResult {
 export class AutoOrchestrator {
   private config: OrchestrationConfig;
   private executions: Map<string, TaskExecution>;
+  private taskResults: string[];
 
   constructor(config: Partial<OrchestrationConfig> = {}) {
     this.config = {
       maxConcurrentTasks: 3,
       timeoutMinutes: 30,
       retryAttempts: 2,
+      enableAutoContext: true,
+      maxContextTokens: 1500,
+      preserveAllResults: true,
       ...config,
     };
     this.executions = new Map();
+    this.taskResults = [];
   }
 
   async orchestrateTask(taskDescription: string): Promise<OrchestrationResult> {
     const startTime = Date.now();
+    this.taskResults = [];
 
     console.log(`🎯 タスクの自動分析を開始: ${taskDescription}`);
 
@@ -154,6 +164,10 @@ export class AutoOrchestrator {
         completedTasks.push(execution);
         results.push(result);
 
+        if (this.config.preserveAllResults) {
+          this.taskResults.push(result);
+        }
+
         console.log(`✅ サブタスク完了: ${subTask.id}`);
       } catch (error) {
         console.error(`❌ サブタスク失敗: ${subTask.id}`, error);
@@ -205,7 +219,7 @@ export class AutoOrchestrator {
     execution.status = "running";
     execution.startTime = new Date();
 
-    this.createTaskInstruction(execution.subTask);
+    await this.createTaskInstruction(execution.subTask);
 
     const mockResult = await this.simulateTaskExecution(execution.subTask);
 
@@ -214,7 +228,30 @@ export class AutoOrchestrator {
     return mockResult;
   }
 
-  private createTaskInstruction(subTask: SubTask): string {
+  private async createTaskInstruction(subTask: SubTask): Promise<string> {
+    let contextSection = "";
+
+    if (this.config.enableAutoContext && this.taskResults.length > 0) {
+      try {
+        console.log(`🔄 ${subTask.id}のコンテキスト自動生成中...`);
+
+        const generatedContext = await createContextForSubTask(
+          this.taskResults,
+          subTask.description,
+          subTask.mode,
+          this.config.maxContextTokens,
+        );
+
+        contextSection = `\n\n**前のタスクからの関連情報:**\n${generatedContext.optimizedContext}`;
+
+        console.log(
+          `✅ コンテキスト生成完了: ${generatedContext.metadata.estimatedTokens}トークン`,
+        );
+      } catch (error) {
+        console.warn(`⚠️ コンテキスト生成に失敗、基本情報のみ使用: ${error}`);
+      }
+    }
+
     return `新しいタスクを作成してください:
 
 モード: ${subTask.mode}
@@ -223,7 +260,7 @@ export class AutoOrchestrator {
 このタスクは自動オーケストレーションシステムによって生成されました。
 優先度: ${subTask.priority}
 推定複雑度: ${subTask.estimatedComplexity}
-依存関係: ${subTask.dependencies.join(", ") || "なし"}`;
+依存関係: ${subTask.dependencies.join(", ") || "なし"}${contextSection}`;
   }
 
   private async simulateTaskExecution(subTask: SubTask): Promise<string> {
