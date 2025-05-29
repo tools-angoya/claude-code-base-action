@@ -50,6 +50,61 @@ Add the following to your workflow file:
     claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
 ```
 
+## 🎯 Custom Modes
+
+This action supports **Custom Modes** - specialized configurations that optimize Claude's behavior for specific tasks:
+
+```yaml
+# Using a custom security auditor mode
+- name: Security Audit
+  uses: tools-angoya/claude-code-base-action@main
+  with:
+    prompt: "Perform a comprehensive security audit"
+    mode: "security-auditor"
+    allowed_tools: "View,GlobTool,GrepTool,BatchTool"
+    use_oauth: "true"
+    claude_access_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
+    claude_refresh_token: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
+    claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
+
+# Using auto-orchestration to automatically select the best mode
+- name: Auto Mode Selection
+  uses: tools-angoya/claude-code-base-action@main
+  with:
+    prompt: "Check this code for security vulnerabilities"
+    auto_orchestration: "true"
+    use_oauth: "true"
+    claude_access_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
+    claude_refresh_token: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
+    claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
+```
+
+### Available Custom Modes
+
+- **🔒 Security Auditor** (`security-auditor`) - Specialized for security vulnerability detection and remediation
+- **⚡ Performance Optimizer** (`performance-optimizer`) - Focused on performance analysis and optimization
+- **🏗️ Enhanced Architect** (`architect`) - Advanced architectural guidance and system design
+
+### Creating Custom Modes
+
+Create your own specialized modes by adding `.md` files to the `.claude/modes/` directory:
+
+```markdown
+---
+name: "Your Custom Mode"
+slug: "your-mode"
+model: "claude-sonnet-4-20250514"
+role: "You are a specialist in..."
+custom_instructions: "Detailed instructions..."
+file_patterns:
+  - ".*\\.(js|ts)$"
+---
+
+# Mode documentation here
+```
+
+For detailed information, see [Custom Modes Guide](CUSTOM_MODES.md).
+
 ## Inputs
 
 | Input                  | Description                                                                                       | Required | Default                      |
@@ -60,6 +115,9 @@ Add the following to your workflow file:
 | `disallowed_tools`     | Comma-separated list of disallowed tools that Claude Code cannot use                              | No       | ''                           |
 | `max_turns`            | Maximum number of conversation turns (default: no limit)                                          | No       | ''                           |
 | `mcp_config`           | Path to the MCP configuration JSON file                                                           | No       | ''                           |
+| `mode`                 | Custom mode to use (e.g., 'security-auditor', 'performance-optimizer')                           | No       | ''                           |
+| `auto_orchestration`   | Enable automatic mode selection based on task content                                             | No       | 'true'                       |
+| `boomerang_task`       | Enable boomerang task mode for manual mode specification in prompt                                | No       | 'false'                      |
 | `model`                | Model to use (provider-specific format required for Bedrock/Vertex)                               | No       | 'claude-3-7-sonnet-20250219' |
 | `anthropic_model`      | DEPRECATED: Use 'model' instead                                                                   | No       | 'claude-3-7-sonnet-20250219' |
 | `timeout_minutes`      | Timeout in minutes for Claude Code execution                                                      | No       | '10'                         |

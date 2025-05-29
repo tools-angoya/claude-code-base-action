@@ -1,0 +1,51 @@
+{
+  "version": "1.0.0",
+  "custom_modes": {
+    "enabled": true,
+    "auto_discovery": true,
+    "modes_directory": "./modes",
+    "default_mode": null,
+    "validation": {
+      "strict_mode": false,
+      "allow_override_builtin": true,
+      "require_version": false
+    }
+  },
+  "orchestration": {
+    "enabled": true,
+    "confidence_threshold": 0.7,
+    "fallback_mode": "code",
+    "mode_selection_strategy": "best_match"
+  },
+  "performance": {
+    "cache_mode_definitions": true,
+    "cache_ttl_seconds": 3600,
+    "parallel_mode_loading": true
+  },
+  "logging": {
+    "level": "info",
+    "include_mode_selection": true,
+    "include_validation_details": false
+  },
+  "security": {
+    "allowed_file_patterns": [
+      ".*\\.(md|txt|json|yaml|yml|toml)$",
+      ".*\\.(js|ts|jsx|tsx|py|java|php|rb|go|rs|c|cpp|cs|kt|swift)$",
+      ".*\\.(sql|db)$",
+      ".*\\.(dockerfile|Dockerfile)$",
+      ".*\\.(nginx|apache|httpd)\\.conf$"
+    ],
+    "blocked_file_patterns": [
+      ".*\\.(exe|bin|so|dll)$",
+      ".*\\.key$",
+      ".*\\.pem$",
+      ".*\\.p12$"
+    ],
+    "max_file_size_mb": 10
+  },
+  "experimental": {
+    "dynamic_mode_loading": false,
+    "mode_composition": false,
+    "ai_assisted_mode_selection": true
+  }
+}

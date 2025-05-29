@@ -78,6 +78,16 @@ inputs:
     required: false
     default: "false"
 
+  # Custom mode settings
+  custom_modes_directory:
+    description: "Directory path containing custom mode definitions (default: .claude/modes)"
+    required: false
+    default: ".claude/modes"
+  enable_custom_modes:
+    description: "Enable loading of custom mode definitions"
+    required: false
+    default: "true"
+
 outputs:
   conclusion:
     description: "Execution status of Claude Code ('success' or 'failure')"
@@ -126,6 +136,8 @@ runs:
         INPUT_MAX_TURNS: ${{ inputs.max_turns }}
         INPUT_MCP_CONFIG: ${{ inputs.mcp_config }}
         INPUT_TIMEOUT_MINUTES: ${{ inputs.timeout_minutes }}
+        INPUT_CUSTOM_MODES_DIRECTORY: ${{ inputs.custom_modes_directory }}
+        INPUT_ENABLE_CUSTOM_MODES: ${{ inputs.enable_custom_modes }}
 
         # Provider configuration
         ANTHROPIC_API_KEY: ${{ inputs.anthropic_api_key }}

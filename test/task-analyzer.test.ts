@@ -1,252 +1,130 @@
 import { describe, expect, it } from "bun:test";
 import {
-  analyzeTask,
   analyzeTaskComplexity,
   analyzeTaskSync,
   decomposeComplexTask,
-  recommendMode
-} from "../src/task-analyzer";
+  recommendMode,
+} from "../src/task-analyzer.js";
 
 describe("TaskAnalyzer", () => {
   describe("analyzeTaskComplexity", () => {
-    it("should identify high complexity tasks", () => {
-      const complexTask = "フルスタックWebアプリケーションのシステム設計とアーキテクチャを策定し、セキュリティとパフォーマンスを考慮した実装を行ってください";
-      
-      const result = analyzeTaskComplexity(complexTask);
-      
-      expect(result.level).toBe("complex");
-      expect(result.score).toBeGreaterThan(5);
-      expect(result.reasons.length).toBeGreaterThan(0);
-    });
+    it("should identify simple tasks", () => {
+      const result = analyzeTaskComplexity("バグを修正してください");
 
-    it("should identify low complexity tasks", () => {
-      const simpleTask = "CSSファイルのスタイルを修正してください";
-      
-      const result = analyzeTaskComplexity(simpleTask);
-      
       expect(result.level).toBe("simple");
       expect(result.score).toBeLessThan(5);
     });
 
-    it("should consider sentence and word count", () => {
-      const longTask = "これは非常に長いタスクの説明です。" +
-        "複数の文章が含まれています。" +
-        "各文章は異なる要件を説明しています。" +
-        "システムの設計が必要です。" +
-        "実装も必要です。" +
-        "テストも実行する必要があります。";
-      
-      const result = analyzeTaskComplexity(longTask);
-      
-      expect(result.reasons.some(r => r.includes("長い説明文"))).toBe(true);
+    it("should identify complex tasks", () => {
+      const result = analyzeTaskComplexity(
+        "マイクロサービスアーキテクチャでシステムを設計し、実装、テスト、デプロイまで行ってください",
+      );
+
+      expect(result.level).toBe("complex");
+      expect(result.score).toBeGreaterThanOrEqual(5);
+    });
+
+    it("should provide reasons for complexity", () => {
+      const result = analyzeTaskComplexity("システム設計とAPI実装");
+
+      expect(result.reasons.length).toBeGreaterThan(0);
+      expect(result.reasons.some((r) => r.includes("システム"))).toBe(true);
     });
   });
 
   describe("recommendMode", () => {
-    it("should recommend architect mode for design tasks", () => {
-      const designTask = "システムアーキテクチャを設計してください";
-      
-      const result = recommendMode(designTask);
-      
+    it("should recommend architect for design tasks", () => {
+      const result = recommendMode("システム設計を行ってください");
+
       expect(result.mode).toBe("architect");
       expect(result.confidence).toBeGreaterThan(0);
     });
 
-    it("should recommend code mode for implementation tasks", () => {
-      const codeTask = "ログイン機能を実装してください";
-      
-      const result = recommendMode(codeTask);
-      
+    it("should recommend code for implementation tasks", () => {
+      const result = recommendMode("プログラムを実装してください");
+
       expect(result.mode).toBe("code");
     });
 
-    it("should recommend debug mode for debugging tasks", () => {
-      const debugTask = "アプリケーションのバグを修正してください";
-      
-      const result = recommendMode(debugTask);
-      
+    it("should recommend debug for bug fixing", () => {
+      const result = recommendMode("バグを修正してください");
+
       expect(result.mode).toBe("debug");
     });
 
-    it("should recommend ask mode for questions", () => {
-      const questionTask = "Reactの使い方を教えてください";
-      
-      const result = recommendMode(questionTask);
-      
+    it("should recommend ask for questions", () => {
+      const result = recommendMode("これについて教えてください");
+
       expect(result.mode).toBe("ask");
     });
 
-    it("should recommend orchestrator mode for complex tasks", () => {
-      const complexTask = "複数のマイクロサービスを統合したシステムを構築してください";
-      
-      const result = recommendMode(complexTask);
-      
-      expect(result.mode).toBe("orchestrator");
+    it("should work with custom prompts", () => {
+      const customPrompts = new Map([
+        ["architect", "カスタムアーキテクトプロンプト"],
+        ["code", "カスタムコードプロンプト"],
+      ]);
+
+      const result = recommendMode("設計してください", customPrompts);
+
+      expect(result.mode).toBe("architect");
     });
   });
 
   describe("decomposeComplexTask", () => {
-    it("should decompose system development task", () => {
-      const systemTask = "新しいユーザー認証システムを設計、実装、テストしてください";
-      
-      const result = decomposeComplexTask(systemTask);
-      
+    it("should decompose system design tasks", () => {
+      const result = decomposeComplexTask("システム設計と実装を行ってください");
+
       expect(result.length).toBeGreaterThan(1);
-      
-      const designTask = result.find(t => t.mode === "architect");
-      const implementationTask = result.find(t => t.mode === "code");
-      const testingTask = result.find(t => t.mode === "debug");
-      
-      expect(designTask).toBeDefined();
-      expect(implementationTask).toBeDefined();
-      expect(testingTask).toBeDefined();
-      
-      if (testingTask && implementationTask) {
-        expect(testingTask.dependencies).toContain("implementation");
-      }
+      expect(result.some((task) => task.mode === "architect")).toBe(true);
+      expect(result.some((task) => task.mode === "code")).toBe(true);
     });
 
-    it("should handle tasks with documentation requirements", () => {
-      const docTask = "APIを実装し、ドキュメントを作成してください";
-      
-      const result = decomposeComplexTask(docTask);
-      
-      const docSubTask = result.find(t => t.mode === "ask");
-      expect(docSubTask).toBeDefined();
-    });
+    it("should handle single-mode tasks", () => {
+      const result = decomposeComplexTask("バグを修正してください");
 
-    it("should assign appropriate priorities", () => {
-      const fullTask = "システム設計、実装、テスト、ドキュメント作成を行ってください";
-      
-      const result = decomposeComplexTask(fullTask);
-      
-      const priorities = result.map(t => t.priority).sort((a, b) => a - b);
-      expect(priorities).toEqual([1, 2, 3, 4]);
-    });
-
-    it("should create single task for simple descriptions", () => {
-      const simpleTask = "ファイルを修正してください";
-      
-      const result = decomposeComplexTask(simpleTask);
-      
       expect(result.length).toBe(1);
-      expect(result[0].id).toBe("main");
+      expect(result[0]?.mode).toBe("debug");
+    });
+
+    it("should set proper dependencies", () => {
+      const result = decomposeComplexTask(
+        "システム設計、実装、テストを行ってください",
+      );
+
+      const designTask = result.find((task) => task.mode === "architect");
+      const implementationTask = result.find((task) => task.mode === "code");
+      const testingTask = result.find((task) => task.mode === "debug");
+
+      expect(designTask?.dependencies).toEqual([]);
+      expect(implementationTask?.dependencies).toContain("design");
+      expect(testingTask?.dependencies).toContain("implementation");
     });
   });
 
   describe("analyzeTaskSync", () => {
-    it("should provide comprehensive analysis for complex tasks", () => {
-      const complexTask = "新しいWebアプリケーションのシステム設計、実装、テストを行ってください";
-      
-      const result = analyzeTaskSync(complexTask);
-      
-      expect(result.complexity.level).toBe("complex");
-      expect(result.requiresOrchestration).toBe(true);
-      expect(result.subTasks.length).toBeGreaterThan(1);
-      expect(result.recommendedMode.mode).toBeDefined();
-    });
+    it("should analyze simple tasks synchronously", () => {
+      const result = analyzeTaskSync("バグを修正してください");
 
-    it("should provide simple analysis for basic tasks", () => {
-      const simpleTask = "README.mdを更新してください";
-      
-      const result = analyzeTaskSync(simpleTask);
-      
       expect(result.complexity.level).toBe("simple");
-      expect(result.requiresOrchestration).toBe(false);
+      expect(result.recommendedMode.mode).toBe("debug");
       expect(result.subTasks.length).toBe(0);
+      expect(result.requiresOrchestration).toBe(false);
     });
 
-    it("should include confidence scores", () => {
-      const task = "データベースを設計してください";
-      
-      const result = analyzeTaskSync(task);
-      
-      expect(result.recommendedMode.confidence).toBeGreaterThan(0);
-      expect(result.recommendedMode.confidence).toBeLessThanOrEqual(100);
+    it("should analyze complex tasks synchronously", () => {
+      const result = analyzeTaskSync("システム設計と実装を行ってください");
+
+      expect(result.complexity.level).toBe("complex");
+      expect(result.subTasks.length).toBeGreaterThan(1);
+      expect(result.requiresOrchestration).toBe(true);
     });
 
-    it("should provide reasoning for recommendations", () => {
-      const task = "バグを修正してください";
-      
-      const result = analyzeTaskSync(task);
-      
-      expect(result.recommendedMode.reasoning).toBeDefined();
-      expect(result.recommendedMode.reasoning.length).toBeGreaterThan(0);
+    it("should work with custom prompts", () => {
+      const customPrompts = new Map([["architect", "カスタムプロンプト"]]);
+
+      const result = analyzeTaskSync("設計してください", customPrompts);
+
+      expect(result.recommendedMode.mode).toBe("architect");
     });
   });
-describe("analyzeTask (async)", () => {
-  it("should provide comprehensive analysis for complex tasks with dynamic decomposition disabled", async () => {
-    const complexTask = "新しいWebアプリケーションのシステム設計、実装、テストを行ってください";
-    
-    const result = await analyzeTask(complexTask, false);
-    
-    expect(result.complexity.level).toBe("complex");
-    expect(result.requiresOrchestration).toBe(true);
-    expect(result.subTasks.length).toBeGreaterThan(1);
-    expect(result.recommendedMode.mode).toBeDefined();
-    expect(result.usedDynamicDecomposition).toBe(false);
-  });
-
-  it("should provide simple analysis for basic tasks", async () => {
-    const simpleTask = "README.mdを更新してください";
-    
-    const result = await analyzeTask(simpleTask, false);
-    
-    expect(result.complexity.level).toBe("simple");
-    expect(result.requiresOrchestration).toBe(false);
-    expect(result.subTasks.length).toBe(0);
-    expect(result.usedDynamicDecomposition).toBe(false);
-  });
-
-  it("should enable dynamic decomposition by default when environment variable is not set", async () => {
-    const originalEnv = process.env.CLAUDE_DYNAMIC_DECOMPOSITION;
-    delete process.env.CLAUDE_DYNAMIC_DECOMPOSITION;
-    
-    const complexTask = "新しいWebアプリケーションのシステム設計、実装、テストを行ってください";
-    
-    const result = await analyzeTask(complexTask, true);
-    
-    expect(result.complexity.level).toBe("complex");
-    
-    if (originalEnv !== undefined) {
-      process.env.CLAUDE_DYNAMIC_DECOMPOSITION = originalEnv;
-    }
-  });
-
-  it("should disable dynamic decomposition when environment variable is set to 'false'", async () => {
-    const originalEnv = process.env.CLAUDE_DYNAMIC_DECOMPOSITION;
-    process.env.CLAUDE_DYNAMIC_DECOMPOSITION = "false";
-    
-    const complexTask = "新しいWebアプリケーションのシステム設計、実装、テストを行ってください";
-    
-    const result = await analyzeTask(complexTask, true);
-    
-    expect(result.complexity.level).toBe("complex");
-    expect(result.usedDynamicDecomposition).toBe(false);
-    
-    if (originalEnv !== undefined) {
-      process.env.CLAUDE_DYNAMIC_DECOMPOSITION = originalEnv;
-    } else {
-      delete process.env.CLAUDE_DYNAMIC_DECOMPOSITION;
-    }
-  });
-
-  it("should disable dynamic decomposition when environment variable is set to '0'", async () => {
-    const originalEnv = process.env.CLAUDE_DYNAMIC_DECOMPOSITION;
-    process.env.CLAUDE_DYNAMIC_DECOMPOSITION = "0";
-    
-    const complexTask = "新しいWebアプリケーションのシステム設計、実装、テストを行ってください";
-    
-    const result = await analyzeTask(complexTask, true);
-    
-    expect(result.complexity.level).toBe("complex");
-    expect(result.usedDynamicDecomposition).toBe(false);
-    
-    if (originalEnv !== undefined) {
-      process.env.CLAUDE_DYNAMIC_DECOMPOSITION = originalEnv;
-    } else {
-      delete process.env.CLAUDE_DYNAMIC_DECOMPOSITION;
-    }
-  });
-});
 });

@@ -2,6 +2,7 @@ import { existsSync, statSync } from "fs";
 import { mkdir, writeFile } from "fs/promises";
 import { createAutoOrchestrator } from "./auto-orchestrator";
 import { processBoomerangTask } from "./boomerang-task";
+import { CustomModeLoader } from "./custom-mode-loader";
 import type { TaskAnalysisResult } from "./task-analyzer";
 import { analyzeTask } from "./task-analyzer";
 
@@ -82,12 +83,21 @@ export async function preparePrompt(
     await createTemporaryPromptFile(input.prompt, config.path);
   }
 
-  const boomerangResult = await processBoomerangTask(config.path);
-  
+  const customModeLoader = new CustomModeLoader();
+  const customPrompts = await customModeLoader.loadCustomPrompts();
+
+  const boomerangResult = await processBoomerangTask(
+    config.path,
+    customPrompts,
+  );
+
   if (boomerangResult.isBoomerangTask && boomerangResult.modifiedPrompt) {
     const boomerangPromptPath = "/tmp/claude-action/boomerang-prompt.txt";
-    await createTemporaryPromptFile(boomerangResult.modifiedPrompt, boomerangPromptPath);
-    
+    await createTemporaryPromptFile(
+      boomerangResult.modifiedPrompt,
+      boomerangPromptPath,
+    );
+
     return {
       ...config,
       path: boomerangPromptPath,
@@ -96,23 +106,35 @@ export async function preparePrompt(
     };
   }
 
-  const shouldUseAutoOrchestration = process.env.CLAUDE_AUTO_ORCHESTRATION === "1";
-  
+  const shouldUseAutoOrchestration =
+    process.env.CLAUDE_AUTO_ORCHESTRATION === "1";
+
   if (shouldUseAutoOrchestration) {
     const taskDescription = input.prompt || input.promptFile;
-    const taskAnalysis = await analyzeTask(taskDescription);
-    
-    console.log(`🎯 タスク分析結果: 複雑度=${taskAnalysis.complexity.level}, 推奨モード=${taskAnalysis.recommendedMode.mode}`);
-    
+    const taskAnalysis = await analyzeTask(
+      taskDescription,
+      true,
+      customPrompts,
+    );
+
+    console.log(
+      `🎯 タスク分析結果: 複雑度=${taskAnalysis.complexity.level}, 推奨モード=${taskAnalysis.recommendedMode.mode}`,
+    );
+
     if (taskAnalysis.requiresOrchestration) {
       console.log(`🔄 自動オーケストレーションを開始します`);
-      
+
       const orchestrator = createAutoOrchestrator();
-      const orchestrationResult = await orchestrator.orchestrateTask(taskDescription);
-      
-      const orchestratedPromptPath = "/tmp/claude-action/orchestrated-prompt.txt";
-      await createTemporaryPromptFile(orchestrationResult.finalResult, orchestratedPromptPath);
-      
+      const orchestrationResult =
+        await orchestrator.orchestrateTask(taskDescription);
+
+      const orchestratedPromptPath =
+        "/tmp/claude-action/orchestrated-prompt.txt";
+      await createTemporaryPromptFile(
+        orchestrationResult.finalResult,
+        orchestratedPromptPath,
+      );
+
       return {
         ...config,
         path: orchestratedPromptPath,

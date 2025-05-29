@@ -1,0 +1,346 @@
+name: Performance Optimization with Custom Mode
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+    inputs:
+      optimization_focus:
+        description: "Optimization focus area"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - frontend
+          - backend
+          - database
+          - algorithms
+
+jobs:
+  performance-analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Performance Analysis
+        id: performance-analysis
+        uses: tools-angoya/claude-code-base-action@main
+        with:
+          prompt: |
+            Perform a comprehensive performance analysis of this codebase with focus on: ${{ github.event.inputs.optimization_focus || 'all' }}
+
+            Analysis areas:
+            1. Algorithm complexity and efficiency
+            2. Memory usage patterns and potential leaks
+            3. Database query optimization
+            4. Network requests and API efficiency
+            5. Bundle size and asset optimization
+            6. Caching strategies and opportunities
+            7. Asynchronous processing and concurrency
+            8. Resource pooling and connection management
+
+            Provide:
+            - Performance bottleneck identification
+            - Quantified improvement opportunities
+            - Specific optimization recommendations
+            - Code examples for improvements
+            - Benchmarking suggestions
+            - Monitoring and profiling guidance
+          mode: "performance-optimizer"
+          allowed_tools: "View,GlobTool,GrepTool,BatchTool,Bash(npm run build --if-present),Bash(du -sh node_modules 2>/dev/null || echo 'No node_modules')"
+          max_turns: "12"
+          use_oauth: "true"
+          claude_access_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
+          claude_refresh_token: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
+          claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
+
+      - name: Parse Performance Results
+        id: parse-results
+        if: steps.performance-analysis.outputs.conclusion == 'success'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const executionFile = '${{ steps.performance-analysis.outputs.execution_file }}';
+            const executionLog = JSON.parse(fs.readFileSync(executionFile, 'utf8'));
+
+            let performanceReport = '';
+            let criticalIssues = 0;
+            let optimizationOpportunities = 0;
+
+            for (let i = executionLog.length - 1; i >= 0; i--) {
+              if (executionLog[i].role === 'assistant') {
+                performanceReport = executionLog[i].content;
+                break;
+              }
+            }
+
+            const criticalMatches = performanceReport.match(/(critical|severe|major)\s+(performance|bottleneck|issue)/gi) || [];
+            const optimizationMatches = performanceReport.match(/(optimization|improve|optimize|enhance)/gi) || [];
+            criticalIssues = criticalMatches.length;
+            optimizationOpportunities = Math.min(optimizationMatches.length, 10);
+
+            core.setOutput('performance_report', performanceReport);
+            core.setOutput('critical_issues', criticalIssues);
+            core.setOutput('optimization_opportunities', optimizationOpportunities);
+
+            return {
+              criticalIssues,
+              optimizationOpportunities,
+              hasPerformanceIssues: criticalIssues > 0
+            };
+
+      - name: Bundle Size Analysis
+        if: steps.performance-analysis.outputs.conclusion == 'success'
+        run: |
+          echo "## Bundle Size Analysis" >> performance-metrics.md
+          echo "" >> performance-metrics.md
+
+          if [ -f "package.json" ]; then
+            echo "### Package Dependencies" >> performance-metrics.md
+            if command -v npm &> /dev/null; then
+              npm list --depth=0 --json 2>/dev/null | jq -r '.dependencies | keys[]' | head -20 >> performance-metrics.md || echo "Could not analyze dependencies" >> performance-metrics.md
+            fi
+            echo "" >> performance-metrics.md
+          fi
+
+          if [ -d "dist" ] || [ -d "build" ]; then
+            echo "### Build Output Size" >> performance-metrics.md
+            du -sh dist/ build/ 2>/dev/null | head -10 >> performance-metrics.md || echo "No build output found" >> performance-metrics.md
+            echo "" >> performance-metrics.md
+          fi
+
+          echo "### Node Modules Size" >> performance-metrics.md
+          du -sh node_modules/ 2>/dev/null >> performance-metrics.md || echo "No node_modules directory" >> performance-metrics.md
+
+      - name: Create Performance Report
+        if: steps.performance-analysis.outputs.conclusion == 'success'
+        run: |
+          mkdir -p performance-reports
+          cat > performance-reports/performance-analysis-$(date +%Y%m%d-%H%M%S).md << 'EOF'
+          # Performance Analysis Report
+
+          **Date**: $(date)
+          **Focus**: ${{ github.event.inputs.optimization_focus || 'all' }}
+          **Commit**: ${{ github.sha }}
+          **Branch**: ${{ github.ref_name }}
+
+          ## Summary
+
+          - Critical Performance Issues: ${{ steps.parse-results.outputs.critical_issues }}
+          - Optimization Opportunities: ${{ steps.parse-results.outputs.optimization_opportunities }}
+
+          ## Detailed Analysis
+
+          ${{ steps.parse-results.outputs.performance_report }}
+
+          ## Metrics
+
+          $(cat performance-metrics.md 2>/dev/null || echo "No additional metrics available")
+
+          ---
+          *Generated by Claude Performance Optimizer*
+          EOF
+
+      - name: Upload Performance Report
+        if: steps.performance-analysis.outputs.conclusion == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-analysis-report-${{ github.run_number }}
+          path: performance-reports/
+          retention-days: 30
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && steps.performance-analysis.outputs.conclusion == 'success'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const criticalIssues = parseInt('${{ steps.parse-results.outputs.critical_issues }}');
+            const opportunities = parseInt('${{ steps.parse-results.outputs.optimization_opportunities }}');
+
+            let emoji = '🚀';
+            let status = 'Performance analysis completed';
+
+            if (criticalIssues > 0) {
+              emoji = '⚠️';
+              status = `${criticalIssues} critical performance issue(s) identified`;
+            } else if (opportunities > 5) {
+              emoji = '💡';
+              status = `${opportunities} optimization opportunities found`;
+            }
+
+            const comment = `## ${emoji} Performance Analysis Results
+
+            **Status**: ${status}
+            **Focus**: ${{ github.event.inputs.optimization_focus || 'all' }}
+
+            ### Summary
+            - Critical Issues: ${criticalIssues}
+            - Optimization Opportunities: ${opportunities}
+
+            <details>
+            <summary>📊 Detailed Performance Report</summary>
+
+            \`\`\`
+            ${{ steps.parse-results.outputs.performance_report }}
+            \`\`\`
+
+            </details>
+
+            ${criticalIssues > 0 ? '⚠️ **Recommendation**: Address critical performance issues for better user experience.' : ''}
+            ${opportunities > 5 ? '💡 **Tip**: Consider implementing suggested optimizations for improved performance.' : ''}
+
+            *Generated by Claude Performance Optimizer Mode*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  benchmark-comparison:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Performance Benchmarks (PR)
+        id: benchmark-pr
+        continue-on-error: true
+        run: |
+          if [ -f "package.json" ] && npm run benchmark --if-present; then
+            echo "benchmark_available=true" >> $GITHUB_OUTPUT
+          else
+            echo "benchmark_available=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Install dependencies (base)
+        run: npm ci
+
+      - name: Run Performance Benchmarks (Base)
+        id: benchmark-base
+        continue-on-error: true
+        if: steps.benchmark-pr.outputs.benchmark_available == 'true'
+        run: npm run benchmark --if-present
+
+      - name: Compare Performance
+        if: steps.benchmark-pr.outputs.benchmark_available == 'true'
+        uses: tools-angoya/claude-code-base-action@main
+        with:
+          prompt: |
+            Compare the performance between the base branch and PR branch:
+
+            1. Analyze any performance differences
+            2. Identify regressions or improvements
+            3. Provide recommendations for optimization
+            4. Suggest performance monitoring strategies
+
+            Focus on actionable insights for maintaining optimal performance.
+          mode: "performance-optimizer"
+          allowed_tools: "View,GlobTool,GrepTool"
+          use_oauth: "true"
+          claude_access_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
+          claude_refresh_token: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
+          claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
+
+  database-optimization:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.optimization_focus == 'database' || github.event.inputs.optimization_focus == 'all' || github.event.inputs.optimization_focus == ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Analyze Database Performance
+        uses: tools-angoya/claude-code-base-action@main
+        with:
+          prompt: |
+            Analyze database-related performance in this codebase:
+
+            1. Review SQL queries for optimization opportunities
+            2. Check for N+1 query problems
+            3. Analyze database schema and indexing strategies
+            4. Review connection pooling and transaction management
+            5. Identify caching opportunities for database operations
+            6. Suggest query optimization and database design improvements
+
+            Provide specific recommendations with examples for database performance optimization.
+          mode: "performance-optimizer"
+          allowed_tools: "View,GlobTool,GrepTool"
+          use_oauth: "true"
+          claude_access_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
+          claude_refresh_token: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
+          claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
+
+  frontend-optimization:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.optimization_focus == 'frontend' || github.event.inputs.optimization_focus == 'all' || github.event.inputs.optimization_focus == ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Analyze Frontend Performance
+        uses: tools-angoya/claude-code-base-action@main
+        with:
+          prompt: |
+            Analyze frontend performance optimization opportunities:
+
+            1. Review bundle size and code splitting strategies
+            2. Analyze asset optimization (images, fonts, CSS, JS)
+            3. Check for render-blocking resources
+            4. Review lazy loading and prefetching opportunities
+            5. Analyze component rendering performance
+            6. Check for memory leaks in frontend code
+            7. Review caching strategies for static assets
+            8. Suggest Core Web Vitals improvements
+
+            Provide actionable recommendations for frontend performance optimization.
+          mode: "performance-optimizer"
+          allowed_tools: "View,GlobTool,GrepTool,Bash(npm run build --if-present)"
+          use_oauth: "true"
+          claude_access_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
+          claude_refresh_token: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
+          claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}

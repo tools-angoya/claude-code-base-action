@@ -12,7 +12,10 @@ export interface BoomerangTaskResult {
   modifiedPrompt?: string;
 }
 
-export function detectBoomerangTask(content: string): BoomerangTaskConfig | null {
+export function detectBoomerangTask(
+  content: string,
+  customPrompts?: Map<string, string>,
+): BoomerangTaskConfig | null {
   const boomerangPatterns = [
     { pattern: /\/architect\s+(.+)/i, mode: "architect" },
     { pattern: /\/debug\s+(.+)/i, mode: "debug" },
@@ -20,6 +23,13 @@ export function detectBoomerangTask(content: string): BoomerangTaskConfig | null
     { pattern: /\/orchestrator\s+(.+)/i, mode: "orchestrator" },
     { pattern: /\/code\s+(.+)/i, mode: "code" },
   ];
+
+  if (customPrompts) {
+    for (const slug of customPrompts.keys()) {
+      const pattern = new RegExp(`\\/${slug}\\s+(.+)`, "i");
+      boomerangPatterns.push({ pattern, mode: slug });
+    }
+  }
 
   for (const { pattern, mode } of boomerangPatterns) {
     const match = content.match(pattern);
@@ -62,19 +72,27 @@ ${config.taskDescription}
 ${originalPrompt}`;
 }
 
-export async function processBoomerangTask(promptPath: string): Promise<BoomerangTaskResult> {
+export async function processBoomerangTask(
+  promptPath: string,
+  customPrompts?: Map<string, string>,
+): Promise<BoomerangTaskResult> {
   try {
     const promptContent = await readFile(promptPath, "utf-8");
-    const boomerangConfig = detectBoomerangTask(promptContent);
-    
+    const boomerangConfig = detectBoomerangTask(promptContent, customPrompts);
+
     if (!boomerangConfig) {
       return { isBoomerangTask: false };
     }
 
-    console.log(`🪃 ブーメランタスクを検出しました: ${boomerangConfig.targetMode}モードへの委譲`);
+    console.log(
+      `🪃 ブーメランタスクを検出しました: ${boomerangConfig.targetMode}モードへの委譲`,
+    );
     console.log(`タスク: ${boomerangConfig.taskDescription}`);
 
-    const modifiedPrompt = createBoomerangTaskPrompt(boomerangConfig, promptContent);
+    const modifiedPrompt = createBoomerangTaskPrompt(
+      boomerangConfig,
+      promptContent,
+    );
 
     return {
       isBoomerangTask: true,
