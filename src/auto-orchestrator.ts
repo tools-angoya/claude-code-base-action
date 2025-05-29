@@ -44,7 +44,7 @@ export class AutoOrchestrator {
     
     console.log(`🎯 タスクの自動分析を開始: ${taskDescription}`);
     
-    const analysis = analyzeTask(taskDescription);
+    const analysis = await analyzeTask(taskDescription);
     
     if (!analysis.requiresOrchestration) {
       console.log(`📝 単純なタスクとして処理: ${analysis.recommendedMode.mode}モード`);

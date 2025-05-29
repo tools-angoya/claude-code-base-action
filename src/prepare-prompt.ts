@@ -100,7 +100,7 @@ export async function preparePrompt(
   
   if (shouldUseAutoOrchestration) {
     const taskDescription = input.prompt || input.promptFile;
-    const taskAnalysis = analyzeTask(taskDescription);
+    const taskAnalysis = await analyzeTask(taskDescription);
     
     console.log(`🎯 タスク分析結果: 複雑度=${taskAnalysis.complexity.level}, 推奨モード=${taskAnalysis.recommendedMode.mode}`);
     

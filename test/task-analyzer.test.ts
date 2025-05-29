@@ -1,9 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import {
-    analyzeTask,
-    analyzeTaskComplexity,
-    decomposeComplexTask,
-    recommendMode,
+  analyzeTask,
+  analyzeTaskComplexity,
+  analyzeTaskSync,
+  decomposeComplexTask,
+  recommendMode
 } from "../src/task-analyzer";
 
 describe("TaskAnalyzer", () => {
@@ -133,11 +134,11 @@ describe("TaskAnalyzer", () => {
     });
   });
 
-  describe("analyzeTask", () => {
+  describe("analyzeTaskSync", () => {
     it("should provide comprehensive analysis for complex tasks", () => {
       const complexTask = "新しいWebアプリケーションのシステム設計、実装、テストを行ってください";
       
-      const result = analyzeTask(complexTask);
+      const result = analyzeTaskSync(complexTask);
       
       expect(result.complexity.level).toBe("complex");
       expect(result.requiresOrchestration).toBe(true);
@@ -148,7 +149,7 @@ describe("TaskAnalyzer", () => {
     it("should provide simple analysis for basic tasks", () => {
       const simpleTask = "README.mdを更新してください";
       
-      const result = analyzeTask(simpleTask);
+      const result = analyzeTaskSync(simpleTask);
       
       expect(result.complexity.level).toBe("simple");
       expect(result.requiresOrchestration).toBe(false);
@@ -158,7 +159,7 @@ describe("TaskAnalyzer", () => {
     it("should include confidence scores", () => {
       const task = "データベースを設計してください";
       
-      const result = analyzeTask(task);
+      const result = analyzeTaskSync(task);
       
       expect(result.recommendedMode.confidence).toBeGreaterThan(0);
       expect(result.recommendedMode.confidence).toBeLessThanOrEqual(100);
@@ -167,10 +168,85 @@ describe("TaskAnalyzer", () => {
     it("should provide reasoning for recommendations", () => {
       const task = "バグを修正してください";
       
-      const result = analyzeTask(task);
+      const result = analyzeTaskSync(task);
       
       expect(result.recommendedMode.reasoning).toBeDefined();
       expect(result.recommendedMode.reasoning.length).toBeGreaterThan(0);
     });
   });
+describe("analyzeTask (async)", () => {
+  it("should provide comprehensive analysis for complex tasks with dynamic decomposition disabled", async () => {
+    const complexTask = "新しいWebアプリケーションのシステム設計、実装、テストを行ってください";
+    
+    const result = await analyzeTask(complexTask, false);
+    
+    expect(result.complexity.level).toBe("complex");
+    expect(result.requiresOrchestration).toBe(true);
+    expect(result.subTasks.length).toBeGreaterThan(1);
+    expect(result.recommendedMode.mode).toBeDefined();
+    expect(result.usedDynamicDecomposition).toBe(false);
+  });
+
+  it("should provide simple analysis for basic tasks", async () => {
+    const simpleTask = "README.mdを更新してください";
+    
+    const result = await analyzeTask(simpleTask, false);
+    
+    expect(result.complexity.level).toBe("simple");
+    expect(result.requiresOrchestration).toBe(false);
+    expect(result.subTasks.length).toBe(0);
+    expect(result.usedDynamicDecomposition).toBe(false);
+  });
+
+  it("should enable dynamic decomposition by default when environment variable is not set", async () => {
+    const originalEnv = process.env.CLAUDE_DYNAMIC_DECOMPOSITION;
+    delete process.env.CLAUDE_DYNAMIC_DECOMPOSITION;
+    
+    const complexTask = "新しいWebアプリケーションのシステム設計、実装、テストを行ってください";
+    
+    const result = await analyzeTask(complexTask, true);
+    
+    expect(result.complexity.level).toBe("complex");
+    
+    if (originalEnv !== undefined) {
+      process.env.CLAUDE_DYNAMIC_DECOMPOSITION = originalEnv;
+    }
+  });
+
+  it("should disable dynamic decomposition when environment variable is set to 'false'", async () => {
+    const originalEnv = process.env.CLAUDE_DYNAMIC_DECOMPOSITION;
+    process.env.CLAUDE_DYNAMIC_DECOMPOSITION = "false";
+    
+    const complexTask = "新しいWebアプリケーションのシステム設計、実装、テストを行ってください";
+    
+    const result = await analyzeTask(complexTask, true);
+    
+    expect(result.complexity.level).toBe("complex");
+    expect(result.usedDynamicDecomposition).toBe(false);
+    
+    if (originalEnv !== undefined) {
+      process.env.CLAUDE_DYNAMIC_DECOMPOSITION = originalEnv;
+    } else {
+      delete process.env.CLAUDE_DYNAMIC_DECOMPOSITION;
+    }
+  });
+
+  it("should disable dynamic decomposition when environment variable is set to '0'", async () => {
+    const originalEnv = process.env.CLAUDE_DYNAMIC_DECOMPOSITION;
+    process.env.CLAUDE_DYNAMIC_DECOMPOSITION = "0";
+    
+    const complexTask = "新しいWebアプリケーションのシステム設計、実装、テストを行ってください";
+    
+    const result = await analyzeTask(complexTask, true);
+    
+    expect(result.complexity.level).toBe("complex");
+    expect(result.usedDynamicDecomposition).toBe(false);
+    
+    if (originalEnv !== undefined) {
+      process.env.CLAUDE_DYNAMIC_DECOMPOSITION = originalEnv;
+    } else {
+      delete process.env.CLAUDE_DYNAMIC_DECOMPOSITION;
+    }
+  });
+});
 });

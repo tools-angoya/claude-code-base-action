@@ -17,6 +17,7 @@ export interface SubTask {
   priority: number;
   dependencies: string[];
   estimatedComplexity: number;
+  estimatedTime?: string;
 }
 
 export interface TaskAnalysisResult {
@@ -24,6 +25,23 @@ export interface TaskAnalysisResult {
   recommendedMode: ModeRecommendation;
   subTasks: SubTask[];
   requiresOrchestration: boolean;
+  usedDynamicDecomposition?: boolean;
+}
+
+export interface DynamicDecompositionResult {
+  analysis: {
+    complexity: 'high' | 'medium' | 'low';
+    estimatedTime: string;
+    requiredSkills: string[];
+  };
+  subtasks: Array<{
+    id: string;
+    description: string;
+    mode: 'architect' | 'code' | 'debug' | 'ask' | 'orchestrator';
+    priority: number;
+    dependencies: string[];
+    estimatedTime: string;
+  }>;
 }
 
 const COMPLEXITY_KEYWORDS = {
@@ -212,10 +230,181 @@ export function decomposeComplexTask(taskDescription: string): SubTask[] {
   return subTasks;
 }
 
-export function analyzeTask(taskDescription: string): TaskAnalysisResult {
+import { mkdir, writeFile } from "fs/promises";
+import { runClaude, type ClaudeOptions } from "./run-claude";
+
+function createDecompositionPrompt(taskDescription: string, context: string): string {
+  return `あなたは高度なタスク分解エキスパートです。以下のタスクを分析し、適切なサブタスクに分解してください。
+
+**分析対象タスク:**
+${taskDescription}
+
+**コンテキスト:**
+${context}
+
+**利用可能なモード:**
+- architect: システム設計、アーキテクチャ策定、要件定義
+- code: コード実装、プログラム開発、ファイル作成
+- debug: デバッグ、テスト、問題解決、検証
+- ask: 質問回答、情報提供、説明、調査
+- orchestrator: 複数タスクの統合、ワークフロー管理
+
+**出力要件:**
+以下のJSON形式で回答してください：
+
+\`\`\`json
+{
+  "analysis": {
+    "complexity": "high|medium|low",
+    "estimatedTime": "分単位での推定時間",
+    "requiredSkills": ["必要なスキルのリスト"]
+  },
+  "subtasks": [
+    {
+      "id": "task-1",
+      "description": "具体的なタスク説明",
+      "mode": "architect|code|debug|ask|orchestrator",
+      "priority": 1,
+      "dependencies": [],
+      "estimatedTime": "分単位での推定時間"
+    }
+  ]
+}
+\`\`\`
+
+**分解ガイドライン:**
+1. タスクの複雑度を正確に評価
+2. 各サブタスクは独立性を保ちつつ論理的な順序を維持
+3. 依存関係を明確に定義
+4. 適切なモードを選択（複雑なタスクはarchitectから開始）
+5. 最大5個のサブタスクに制限
+6. 各サブタスクの実行時間を現実的に見積もり
+
+JSON形式のみで回答し、説明文は含めないでください。`;
+}
+
+function parseDecompositionResult(claudeOutput: string): SubTask[] {
+  try {
+    const lines = claudeOutput.split('\n');
+    let jsonContent = '';
+    let inCodeBlock = false;
+    
+    for (const line of lines) {
+      if (line.trim().startsWith('```json')) {
+        inCodeBlock = true;
+        continue;
+      }
+      if (line.trim() === '```' && inCodeBlock) {
+        break;
+      }
+      if (inCodeBlock) {
+        jsonContent += line + '\n';
+      }
+    }
+    
+    if (!jsonContent.trim()) {
+      const jsonMatch = claudeOutput.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[0];
+      }
+    }
+    
+    const result: DynamicDecompositionResult = JSON.parse(jsonContent.trim());
+    
+    return result.subtasks.map(task => ({
+      id: task.id,
+      description: task.description,
+      mode: task.mode,
+      priority: task.priority,
+      dependencies: task.dependencies,
+      estimatedComplexity: task.mode === 'architect' ? 3 :
+                          task.mode === 'code' ? 4 :
+                          task.mode === 'debug' ? 2 :
+                          task.mode === 'orchestrator' ? 3 : 1,
+      estimatedTime: task.estimatedTime
+    }));
+  } catch (error) {
+    console.warn(`動的分解結果の解析に失敗: ${error}`);
+    return [];
+  }
+}
+
+async function decomposeTaskWithClaude(taskDescription: string, context: string): Promise<SubTask[]> {
+  try {
+    const prompt = createDecompositionPrompt(taskDescription, context);
+    const promptPath = "/tmp/claude-action/decomposition-prompt.txt";
+    
+    await mkdir("/tmp/claude-action", { recursive: true });
+    await writeFile(promptPath, prompt);
+    
+    const options: ClaudeOptions = {
+      maxTurns: "1",
+      allowedTools: "ask_followup_question"
+    };
+    
+    console.log("🤖 Claude Codeによる動的タスク分解を実行中...");
+    await runClaude(promptPath, options);
+    
+    const { readFile } = await import("fs/promises");
+    const outputContent = await readFile("/tmp/claude-execution-output.json", "utf-8");
+    const outputData = JSON.parse(outputContent);
+    
+    let claudeResponse = "";
+    for (const entry of outputData) {
+      if (entry.type === "text" && entry.text) {
+        claudeResponse += entry.text;
+      }
+    }
+    
+    const subTasks = parseDecompositionResult(claudeResponse);
+    console.log(`✅ 動的分解完了: ${subTasks.length}個のサブタスクを生成`);
+    
+    return subTasks;
+  } catch (error) {
+    console.warn(`動的タスク分解に失敗、固定分解にフォールバック: ${error}`);
+    return [];
+  }
+}
+
+export async function analyzeTask(taskDescription: string, enableDynamicDecomposition: boolean = true): Promise<TaskAnalysisResult> {
   const complexity = analyzeTaskComplexity(taskDescription);
   const recommendedMode = recommendMode(taskDescription);
-  const subTasks = complexity.level === 'complex' 
+  
+  let subTasks: SubTask[] = [];
+  let usedDynamicDecomposition = false;
+  
+  if (complexity.level === 'complex') {
+    const dynamicDecompositionEnabled = process.env.CLAUDE_DYNAMIC_DECOMPOSITION !== "false" && 
+                                       process.env.CLAUDE_DYNAMIC_DECOMPOSITION !== "0";
+    
+    if (enableDynamicDecomposition && dynamicDecompositionEnabled) {
+      const context = `複雑度: ${complexity.level}, スコア: ${complexity.score}, 理由: ${complexity.reasons.join(', ')}`;
+      const dynamicSubTasks = await decomposeTaskWithClaude(taskDescription, context);
+      
+      if (dynamicSubTasks.length > 0) {
+        subTasks = dynamicSubTasks;
+        usedDynamicDecomposition = true;
+      } else {
+        subTasks = decomposeComplexTask(taskDescription);
+      }
+    } else {
+      subTasks = decomposeComplexTask(taskDescription);
+    }
+  }
+
+  return {
+    complexity,
+    recommendedMode,
+    subTasks,
+    requiresOrchestration: complexity.level === 'complex' && subTasks.length > 1,
+    usedDynamicDecomposition
+  };
+}
+
+export function analyzeTaskSync(taskDescription: string): TaskAnalysisResult {
+  const complexity = analyzeTaskComplexity(taskDescription);
+  const recommendedMode = recommendMode(taskDescription);
+  const subTasks = complexity.level === 'complex'
     ? decomposeComplexTask(taskDescription)
     : [];
 
@@ -223,6 +412,7 @@ export function analyzeTask(taskDescription: string): TaskAnalysisResult {
     complexity,
     recommendedMode,
     subTasks,
-    requiresOrchestration: complexity.level === 'complex' && subTasks.length > 1
+    requiresOrchestration: complexity.level === 'complex' && subTasks.length > 1,
+    usedDynamicDecomposition: false
   };
 }
