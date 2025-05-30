@@ -276,7 +276,7 @@ function enhanceContextForTask(
   return context;
 }
 
-function getTaskSpecificPrefix(taskGoal: string, taskType: string): string {
+function getTaskSpecificPrefix(taskGoal: string, _taskType: string): string {
   const goalLower = taskGoal.toLowerCase();
 
   if (goalLower.includes("テスト") || goalLower.includes("test")) {

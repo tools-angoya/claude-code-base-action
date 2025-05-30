@@ -110,7 +110,7 @@ function groupItemsByType(items: ContextItem[]): Record<string, ContextItem[]> {
 function summarizeItemGroup(
   items: ContextItem[],
   groupType: string,
-  config: SummaryConfig,
+  _config: SummaryConfig,
 ): {
   summary: string;
   keyPoints: string[];

@@ -335,54 +335,54 @@ function createDecompositionPrompt(
   context: string,
 ): string {
   return `あなたは高度なタスク分解エキスパートです。以下のタスクを分析し、適切なサブタスクに分解してください。
-
-**分析対象タスク:**
-${taskDescription}
-
-**コンテキスト:**
-${context}
-
-**利用可能なモード:**
-- architect: システム設計、アーキテクチャ策定、要件定義
-- code: コード実装、プログラム開発、ファイル作成
-- debug: デバッグ、テスト、問題解決、検証
-- ask: 質問回答、情報提供、説明、調査
-- orchestrator: 複数タスクの統合、ワークフロー管理
-
-**出力要件:**
-以下のJSON形式で回答してください：
-
-\`\`\`json
-{
-  "analysis": {
-    "complexity": "high|medium|low",
-    "estimatedTime": "分単位での推定時間",
-    "requiredSkills": ["必要なスキルのリスト"]
-  },
-  "subtasks": [
-    {
-      "id": "task-1",
-      "description": "具体的なタスク説明",
-      "mode": "architect|code|debug|ask|orchestrator",
-      "priority": 1,
-      "dependencies": [],
-      "estimatedTime": "分単位での推定時間"
-    }
-  ]
+  
+  **分析対象タスク:**
+  ${taskDescription}
+  
+  **コンテキスト:**
+  ${context}
+  
+  **利用可能なモード:**
+  - 🏗️ **architect**: システム設計、アーキテクチャ策定、要件定義、技術選定
+  - 💻 **code**: コード実装、プログラム開発、ファイル作成、機能実装
+  - 🪲 **debug**: デバッグ、テスト、問題解決、検証、エラー修正
+  - ❓ **ask**: 質問回答、情報提供、説明、調査、ドキュメント作成
+  - 🪃 **orchestrator**: 複数タスクの統合、ワークフロー管理、プロジェクト調整
+  
+  **出力要件:**
+  以下のJSON形式で回答してください。各サブタスクには必ず適切なモードを指定してください：
+  
+  \`\`\`json
+  {
+    "analysis": {
+      "complexity": "high|medium|low",
+      "estimatedTime": "分単位での推定時間",
+      "requiredSkills": ["必要なスキルのリスト"]
+    },
+    "subtasks": [
+      {
+        "id": "task-1",
+        "description": "具体的なタスク説明（モード名を含めて明確に記述）",
+        "mode": "architect|code|debug|ask|orchestrator",
+        "priority": 1,
+        "dependencies": [],
+        "estimatedTime": "分単位での推定時間"
+      }
+    ]
+  }
+  \`\`\`
+  
+  **分解ガイドライン:**
+  1. タスクの複雑度を正確に評価
+  2. 各サブタスクは独立性を保ちつつ論理的な順序を維持
+  3. 依存関係を明確に定義
+  4. 適切なモードを選択（複雑なタスクはarchitectから開始）
+  5. 最大5個のサブタスクに制限
+  6. 各サブタスクの実行時間を現実的に見積もり
+  7. **重要**: 各サブタスクの説明には使用するモード名を明記すること
+  
+  JSON形式のみで回答し、説明文は含めないでください。`;
 }
-\`\`\`
-
-**分解ガイドライン:**
-1. タスクの複雑度を正確に評価
-2. 各サブタスクは独立性を保ちつつ論理的な順序を維持
-3. 依存関係を明確に定義
-4. 適切なモードを選択（複雑なタスクはarchitectから開始）
-5. 最大5個のサブタスクに制限
-6. 各サブタスクの実行時間を現実的に見積もり
-
-JSON形式のみで回答し、説明文は含めないでください。`;
-}
-
 function parseDecompositionResult(claudeOutput: string): SubTask[] {
   try {
     const lines = claudeOutput.split("\n");

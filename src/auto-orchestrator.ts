@@ -252,15 +252,30 @@ export class AutoOrchestrator {
       }
     }
 
-    return `新しいタスクを作成してください:
+    const modeEmoji =
+      {
+        architect: "🏗️",
+        code: "💻",
+        debug: "🪲",
+        ask: "❓",
+        orchestrator: "🪃",
+      }[subTask.mode] || "📋";
 
-モード: ${subTask.mode}
-メッセージ: ${subTask.description}
+    return `🎯 **自動オーケストレーション** - 新しいタスクを作成してください:
 
-このタスクは自動オーケストレーションシステムによって生成されました。
-優先度: ${subTask.priority}
-推定複雑度: ${subTask.estimatedComplexity}
-依存関係: ${subTask.dependencies.join(", ") || "なし"}${contextSection}`;
+**使用モード**: ${modeEmoji} \`${subTask.mode}\`
+**タスクID**: ${subTask.id}
+**タスク内容**: ${subTask.description}
+
+---
+**📊 タスク詳細:**
+- **実行モード**: **${subTask.mode}モード**
+- **優先度**: ${subTask.priority}
+- **推定複雑度**: ${subTask.estimatedComplexity}
+- **依存関係**: ${subTask.dependencies.join(", ") || "なし"}
+- **タスクタイプ**: 自動オーケストレーション（AI分析による自動分解）
+
+このタスクは自動オーケストレーションシステムによって **${subTask.mode}モード** で実行するように生成されました。${contextSection}`;
   }
 
   private async simulateTaskExecution(subTask: SubTask): Promise<string> {
@@ -288,9 +303,19 @@ export class AutoOrchestrator {
     if (completedTasks.length > 0) {
       summary.push("## 完了したタスク");
       for (const task of completedTasks) {
-        summary.push(`### ${task.subTask.id} (${task.subTask.mode}モード)`);
-        summary.push(`- 説明: ${task.subTask.description}`);
-        summary.push(`- 結果: ${task.result}`);
+        summary.push(
+          `### 📋 ${task.subTask.id} - **${task.subTask.mode}モード**`,
+        );
+        summary.push(`- **説明**: ${task.subTask.description}`);
+        summary.push(`- **使用モード**: \`${task.subTask.mode}\``);
+        summary.push(`- **優先度**: ${task.subTask.priority}`);
+        summary.push(`- **推定複雑度**: ${task.subTask.estimatedComplexity}`);
+        if (task.subTask.dependencies.length > 0) {
+          summary.push(
+            `- **依存関係**: ${task.subTask.dependencies.join(", ")}`,
+          );
+        }
+        summary.push(`- **結果**: ${task.result}`);
         summary.push("");
       }
     }
@@ -298,9 +323,19 @@ export class AutoOrchestrator {
     if (failedTasks.length > 0) {
       summary.push("## 失敗したタスク");
       for (const task of failedTasks) {
-        summary.push(`### ${task.subTask.id} (${task.subTask.mode}モード)`);
-        summary.push(`- 説明: ${task.subTask.description}`);
-        summary.push(`- エラー: ${task.error}`);
+        summary.push(
+          `### ❌ ${task.subTask.id} - **${task.subTask.mode}モード**`,
+        );
+        summary.push(`- **説明**: ${task.subTask.description}`);
+        summary.push(`- **使用モード**: \`${task.subTask.mode}\``);
+        summary.push(`- **優先度**: ${task.subTask.priority}`);
+        summary.push(`- **推定複雑度**: ${task.subTask.estimatedComplexity}`);
+        if (task.subTask.dependencies.length > 0) {
+          summary.push(
+            `- **依存関係**: ${task.subTask.dependencies.join(", ")}`,
+          );
+        }
+        summary.push(`- **エラー**: ${task.error}`);
         summary.push("");
       }
     }

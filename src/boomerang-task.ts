@@ -49,25 +49,38 @@ export function createBoomerangTaskPrompt(
   config: BoomerangTaskConfig,
   originalPrompt: string,
 ): string {
-  return `# ブーメランタスク
+  const modeEmoji =
+    {
+      architect: "🏗️",
+      code: "💻",
+      debug: "🪲",
+      ask: "❓",
+      orchestrator: "🪃",
+    }[config.targetMode] || "📋";
+
+  return `# 🪃 ブーメランタスク
 
 **元のプロンプト:**
 ${originalPrompt}
 
-**委譲されたタスク:**
-${config.taskDescription}
+---
 
-**対象モード:** ${config.targetMode}
+## 📋 委譲されたタスク
 
-このタスクは元のClaudeCodeActionから委譲されました。指定されたタスクを完了し、結果を提供してください。
+**使用モード**: ${modeEmoji} **${config.targetMode}モード**
+**タスク内容**: ${config.taskDescription}
+**トリガーフレーズ**: \`${config.triggerPhrase}\`
 
-## 指示
+このタスクは元のClaudeCodeActionから **${config.targetMode}モード** に委譲されました。指定されたタスクを完了し、結果を提供してください。
 
-1. 上記のタスクを${config.targetMode}モードで実行してください
+## 🎯 実行指示
+
+1. 上記のタスクを **${config.targetMode}モード** で実行してください
 2. 実行結果を詳細に報告してください
 3. 必要に応じて、元のコンテキストを参照してください
+4. モード固有の機能を最大限活用してください
 
-## 元のコンテキスト
+## 📚 元のコンテキスト
 
 ${originalPrompt}`;
 }
@@ -106,10 +119,25 @@ export async function processBoomerangTask(
 }
 
 export function createNewTaskInstruction(config: BoomerangTaskConfig): string {
-  return `新しいタスクを作成してください:
+  const modeEmoji =
+    {
+      architect: "🏗️",
+      code: "💻",
+      debug: "🪲",
+      ask: "❓",
+      orchestrator: "🪃",
+    }[config.targetMode] || "📋";
 
-モード: ${config.targetMode}
-メッセージ: ${config.taskDescription}
+  return `🪃 **ブーメランタスク** - 新しいタスクを作成してください:
 
-このタスクは元のClaudeCodeActionから委譲されたブーメランタスクです。`;
+**使用モード**: ${modeEmoji} \`${config.targetMode}\`
+**タスク内容**: ${config.taskDescription}
+
+---
+**📝 タスク詳細:**
+- **委譲元**: ClaudeCodeAction
+- **実行モード**: **${config.targetMode}モード**
+- **タスクタイプ**: ブーメランタスク（手動モード指定）
+
+このタスクは元のClaudeCodeActionから **${config.targetMode}モード** に委譲されたブーメランタスクです。`;
 }
