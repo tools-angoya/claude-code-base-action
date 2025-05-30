@@ -1,9 +1,8 @@
 import * as core from "@actions/core";
-import { exec } from "child_process";
-import { promisify } from "util";
-import { unlink, writeFile, stat } from "fs/promises";
+import { exec, spawn } from "child_process";
 import { createWriteStream } from "fs";
-import { spawn } from "child_process";
+import { stat, unlink, writeFile } from "fs/promises";
+import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
@@ -144,7 +143,7 @@ export async function runClaude(promptPath: string, options: ClaudeOptions) {
 
   // Wait for Claude to finish with timeout
   const timeoutMs =
-    parseInt(process.env.INPUT_TIMEOUT_MINUTES || "10") * 60 * 1000;
+    parseInt(process.env.INPUT_TIMEOUT_MINUTES || "300") * 60 * 1000;
   const exitCode = await new Promise<number>((resolve) => {
     let resolved = false;
 

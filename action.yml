@@ -41,7 +41,7 @@ inputs:
   timeout_minutes:
     description: "Timeout in minutes for Claude Code execution"
     required: false
-    default: "10"
+    default: "300"
 
   # Authentication settings
   anthropic_api_key:
