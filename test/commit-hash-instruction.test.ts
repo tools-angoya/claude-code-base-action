@@ -31,7 +31,7 @@ describe("Commit Hash Instruction", () => {
 
       expect(enhancedContent).toContain(originalPrompt);
       expect(enhancedContent).toContain(
-        "重要: コミットを行った場合、コミットハッシュを出力してください。",
+        "重要: コミットを行った場合、コミットハッシュを出力してください。コミットハッシュは完全な40文字の形式で出力し、バッククォートやコードブロックで囲まないでください。",
       );
     });
 
@@ -48,7 +48,7 @@ describe("Commit Hash Instruction", () => {
 
       expect(enhancedContent).toContain(originalPrompt);
       expect(enhancedContent).toContain(
-        "重要: コミットを行った場合、コミットハッシュを出力してください。",
+        "重要: コミットを行った場合、コミットハッシュを出力してください。コミットハッシュは完全な40文字の形式で出力し、バッククォートやコードブロックで囲まないでください。",
       );
     });
 

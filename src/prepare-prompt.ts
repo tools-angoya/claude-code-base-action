@@ -73,7 +73,7 @@ async function createTemporaryPromptFile(
   await mkdir(dirPath, { recursive: true });
 
   const commitInstruction =
-    "\n\n重要: コミットを行った場合、コミットハッシュを出力してください。";
+    "\n\n重要: コミットを行った場合、コミットハッシュを出力してください。コミットハッシュは完全な40文字の形式で出力し、バッククォートやコードブロックで囲まないでください。";
   const enhancedPrompt = prompt + commitInstruction;
 
   await writeFile(promptPath, enhancedPrompt);
