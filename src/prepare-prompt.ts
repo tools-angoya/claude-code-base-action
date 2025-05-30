@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "fs";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import { createAutoOrchestrator } from "./auto-orchestrator";
 import { processBoomerangTask } from "./boomerang-task";
 import { CustomModeLoader } from "./custom-mode-loader";
@@ -71,7 +71,12 @@ async function createTemporaryPromptFile(
 ): Promise<void> {
   const dirPath = promptPath.substring(0, promptPath.lastIndexOf("/"));
   await mkdir(dirPath, { recursive: true });
-  await writeFile(promptPath, prompt);
+
+  const commitInstruction =
+    "\n\n重要: コミットを行った場合、コミットハッシュを出力してください。";
+  const enhancedPrompt = prompt + commitInstruction;
+
+  await writeFile(promptPath, enhancedPrompt);
 }
 
 export async function preparePrompt(
@@ -81,6 +86,11 @@ export async function preparePrompt(
 
   if (config.type === "inline") {
     await createTemporaryPromptFile(input.prompt, config.path);
+  } else if (config.type === "file") {
+    const originalContent = await readFile(config.path, "utf-8");
+    const enhancedPromptPath = "/tmp/claude-action/enhanced-prompt.txt";
+    await createTemporaryPromptFile(originalContent, enhancedPromptPath);
+    config.path = enhancedPromptPath;
   }
 
   const customModeLoader = new CustomModeLoader();
