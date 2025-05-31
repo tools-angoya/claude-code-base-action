@@ -8,15 +8,6 @@ import { runClaude } from "./run-claude";
 import { setupOAuthCredentials } from "./setup-oauth";
 import { validateEnvironmentVariables } from "./validate-env";
 
-const DEFAULT_TOOLS = "Bash(*),View,GlobTool,GrepTool,BatchTool,Write,Edit";
-
-function mergeAllowedTools(userTools?: string): string {
-  if (!userTools) {
-    return DEFAULT_TOOLS;
-  }
-  return `${userTools},${DEFAULT_TOOLS}`;
-}
-
 async function run() {
   try {
     validateEnvironmentVariables();
@@ -65,8 +56,9 @@ async function run() {
       );
       console.log("新しいタスク指示:", newTaskInstruction);
 
-      const baseTools = mergeAllowedTools(process.env.INPUT_ALLOWED_TOOLS);
-      const allowedTools = `${baseTools},new_task`;
+      const allowedTools = process.env.INPUT_ALLOWED_TOOLS
+        ? `${process.env.INPUT_ALLOWED_TOOLS},new_task`
+        : "new_task";
 
       await runClaude(promptConfig.path, {
         allowedTools,
@@ -82,7 +74,7 @@ async function run() {
       );
 
       await runClaude(promptConfig.path, {
-        allowedTools: mergeAllowedTools(process.env.INPUT_ALLOWED_TOOLS),
+        allowedTools: process.env.INPUT_ALLOWED_TOOLS,
         disallowedTools: process.env.INPUT_DISALLOWED_TOOLS,
         skipPermissions: process.env.INPUT_SKIP_PERMISSIONS === "true",
         maxTurns: process.env.INPUT_MAX_TURNS,
@@ -90,7 +82,7 @@ async function run() {
       });
     } else {
       await runClaude(promptConfig.path, {
-        allowedTools: mergeAllowedTools(process.env.INPUT_ALLOWED_TOOLS),
+        allowedTools: process.env.INPUT_ALLOWED_TOOLS,
         disallowedTools: process.env.INPUT_DISALLOWED_TOOLS,
         skipPermissions: process.env.INPUT_SKIP_PERMISSIONS === "true",
         maxTurns: process.env.INPUT_MAX_TURNS,
