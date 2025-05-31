@@ -15,7 +15,6 @@ export type ClaudeOptions = {
   disallowedTools?: string;
   maxTurns?: string;
   mcpConfig?: string;
-  skipPermissions?: boolean;
 };
 
 type PreparedConfig = {
@@ -28,9 +27,6 @@ export function prepareRunConfig(
   options: ClaudeOptions,
 ): PreparedConfig {
   const claudeArgs = [...BASE_ARGS];
-  if (options.skipPermissions) {
-    claudeArgs.push("--dangerously-skip-permissions");
-  }
   if (options.allowedTools) {
     claudeArgs.push("--allowedTools", options.allowedTools);
   }

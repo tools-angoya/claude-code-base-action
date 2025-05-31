@@ -63,7 +63,6 @@ async function run() {
       await runClaude(promptConfig.path, {
         allowedTools,
         disallowedTools: process.env.INPUT_DISALLOWED_TOOLS,
-        skipPermissions: process.env.INPUT_SKIP_PERMISSIONS === "true",
         maxTurns: process.env.INPUT_MAX_TURNS,
         mcpConfig: process.env.INPUT_MCP_CONFIG,
       });
@@ -76,7 +75,6 @@ async function run() {
       await runClaude(promptConfig.path, {
         allowedTools: process.env.INPUT_ALLOWED_TOOLS,
         disallowedTools: process.env.INPUT_DISALLOWED_TOOLS,
-        skipPermissions: process.env.INPUT_SKIP_PERMISSIONS === "true",
         maxTurns: process.env.INPUT_MAX_TURNS,
         mcpConfig: process.env.INPUT_MCP_CONFIG,
       });
@@ -84,7 +82,6 @@ async function run() {
       await runClaude(promptConfig.path, {
         allowedTools: process.env.INPUT_ALLOWED_TOOLS,
         disallowedTools: process.env.INPUT_DISALLOWED_TOOLS,
-        skipPermissions: process.env.INPUT_SKIP_PERMISSIONS === "true",
         maxTurns: process.env.INPUT_MAX_TURNS,
         mcpConfig: process.env.INPUT_MCP_CONFIG,
       });

@@ -17,15 +17,11 @@ inputs:
   allowed_tools:
     description: "Comma-separated list of allowed tools for Claude Code to use"
     required: false
-    default: ""
+    default: "Bash(*),View,Edit,Write,GlobTool,GrepTool,BatchTool,LS,Read,Create,Delete,Move,Copy,Search,Replace,Insert,Append,Truncate,Touch,Mkdir,Rmdir,Chmod,Chown,Find,Locate,Which,Whereis,File,Stat,Du,Df,Free,Ps,Top,Kill,Jobs,Nohup,Screen,Tmux,Curl,Wget,Git,Npm,Yarn,Pip,Composer,Bundle,Cargo,Go,Rustc,Gcc,Make,Cmake,Docker,Kubectl,Helm,Terraform,Ansible"
   disallowed_tools:
     description: "Comma-separated list of disallowed tools that Claude Code cannot use"
     required: false
     default: ""
-  skip_permissions:
-    description: "Skip all permission checks (dangerous - use only in secure environments)"
-    required: false
-    default: "true"
   max_turns:
     description: "Maximum number of conversation turns (default: no limit)"
     required: false
@@ -137,7 +133,6 @@ runs:
         INPUT_PROMPT_FILE: ${{ inputs.prompt_file }}
         INPUT_ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
         INPUT_DISALLOWED_TOOLS: ${{ inputs.disallowed_tools }}
-        INPUT_SKIP_PERMISSIONS: ${{ inputs.skip_permissions }}
         INPUT_MAX_TURNS: ${{ inputs.max_turns }}
         INPUT_MCP_CONFIG: ${{ inputs.mcp_config }}
         INPUT_TIMEOUT_MINUTES: ${{ inputs.timeout_minutes }}
