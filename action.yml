@@ -22,6 +22,10 @@ inputs:
     description: "Comma-separated list of disallowed tools that Claude Code cannot use"
     required: false
     default: ""
+  skip_permissions:
+    description: "Skip all permission checks (dangerous - use only in secure environments)"
+    required: false
+    default: "true"
   max_turns:
     description: "Maximum number of conversation turns (default: no limit)"
     required: false
@@ -133,6 +137,7 @@ runs:
         INPUT_PROMPT_FILE: ${{ inputs.prompt_file }}
         INPUT_ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
         INPUT_DISALLOWED_TOOLS: ${{ inputs.disallowed_tools }}
+        INPUT_SKIP_PERMISSIONS: ${{ inputs.skip_permissions }}
         INPUT_MAX_TURNS: ${{ inputs.max_turns }}
         INPUT_MCP_CONFIG: ${{ inputs.mcp_config }}
         INPUT_TIMEOUT_MINUTES: ${{ inputs.timeout_minutes }}
