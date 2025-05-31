@@ -68,7 +68,7 @@ ${originalPrompt}
 ## 📋 委譲されたタスク
 
 **使用モード**: ${modeEmoji} **${config.targetMode}モード**
-**タスク内容**: ${config.taskDescription}
+**タスク内容**: ${config.taskDescription} (${config.targetMode})
 **トリガーフレーズ**: \`${config.triggerPhrase}\`
 
 このタスクは元のClaudeCodeActionから **${config.targetMode}モード** に委譲されました。指定されたタスクを完了し、結果を提供してください。
@@ -131,7 +131,7 @@ export function createNewTaskInstruction(config: BoomerangTaskConfig): string {
   return `🪃 **ブーメランタスク** - 新しいタスクを作成してください:
 
 **使用モード**: ${modeEmoji} \`${config.targetMode}\`
-**タスク内容**: ${config.taskDescription}
+**タスク内容**: ${config.taskDescription} (${config.targetMode})
 
 ---
 **📝 タスク詳細:**

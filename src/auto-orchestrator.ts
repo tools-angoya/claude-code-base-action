@@ -306,7 +306,9 @@ export class AutoOrchestrator {
         summary.push(
           `### 📋 ${task.subTask.id} - **${task.subTask.mode}モード**`,
         );
-        summary.push(`- **説明**: ${task.subTask.description}`);
+        summary.push(
+          `- **説明**: ${task.subTask.description} (${task.subTask.mode})`,
+        );
         summary.push(`- **使用モード**: \`${task.subTask.mode}\``);
         summary.push(`- **優先度**: ${task.subTask.priority}`);
         summary.push(`- **推定複雑度**: ${task.subTask.estimatedComplexity}`);
@@ -326,7 +328,9 @@ export class AutoOrchestrator {
         summary.push(
           `### ❌ ${task.subTask.id} - **${task.subTask.mode}モード**`,
         );
-        summary.push(`- **説明**: ${task.subTask.description}`);
+        summary.push(
+          `- **説明**: ${task.subTask.description} (${task.subTask.mode})`,
+        );
         summary.push(`- **使用モード**: \`${task.subTask.mode}\``);
         summary.push(`- **優先度**: ${task.subTask.priority}`);
         summary.push(`- **推定複雑度**: ${task.subTask.estimatedComplexity}`);

@@ -259,7 +259,7 @@ export function decomposeComplexTask(taskDescription: string): SubTask[] {
   ) {
     subTasks.push({
       id: "design",
-      description: "システム設計とアーキテクチャの策定",
+      description: "システム設計とアーキテクチャの策定 (architect)",
       mode: "architect",
       priority: 1,
       dependencies: [],
@@ -274,7 +274,7 @@ export function decomposeComplexTask(taskDescription: string): SubTask[] {
   ) {
     subTasks.push({
       id: "implementation",
-      description: "コードの実装と開発",
+      description: "コードの実装と開発 (code)",
       mode: "code",
       priority: 2,
       dependencies: subTasks.length > 0 ? ["design"] : [],
@@ -289,7 +289,7 @@ export function decomposeComplexTask(taskDescription: string): SubTask[] {
   ) {
     subTasks.push({
       id: "testing",
-      description: "テストとデバッグの実行",
+      description: "テストとデバッグの実行 (debug)",
       mode: "debug",
       priority: 3,
       dependencies: ["implementation"],
@@ -304,7 +304,7 @@ export function decomposeComplexTask(taskDescription: string): SubTask[] {
   ) {
     subTasks.push({
       id: "documentation",
-      description: "ドキュメントの作成と説明",
+      description: "ドキュメントの作成と説明 (ask)",
       mode: "ask",
       priority: 4,
       dependencies: ["implementation"],
@@ -316,7 +316,7 @@ export function decomposeComplexTask(taskDescription: string): SubTask[] {
     const recommendedMode = recommendMode(taskDescription);
     subTasks.push({
       id: "main",
-      description: taskDescription,
+      description: `${taskDescription} (${recommendedMode.mode})`,
       mode: recommendedMode.mode,
       priority: 1,
       dependencies: [],
@@ -359,14 +359,14 @@ function createDecompositionPrompt(
       "estimatedTime": "分単位での推定時間",
       "requiredSkills": ["必要なスキルのリスト"]
     },
-    "subtasks": [
-      {
-        "id": "task-1",
-        "description": "具体的なタスク説明（モード名を含めて明確に記述）",
-        "mode": "architect|code|debug|ask|orchestrator",
-        "priority": 1,
-        "dependencies": [],
-        "estimatedTime": "分単位での推定時間"
+    {
+      "id": "task-1",
+      "description": "具体的なタスク説明",
+      "mode": "architect|code|debug|ask|orchestrator",
+      "priority": 1,
+      "dependencies": [],
+      "estimatedTime": "分単位での推定時間"
+    }
       }
     ]
   }
@@ -379,7 +379,7 @@ function createDecompositionPrompt(
   4. 適切なモードを選択（複雑なタスクはarchitectから開始）
   5. 最大5個のサブタスクに制限
   6. 各サブタスクの実行時間を現実的に見積もり
-  7. **重要**: 各サブタスクの説明には使用するモード名を明記すること
+  7. **重要**: サブタスクの説明は簡潔で明確にすること（モード名は自動で追加されます）
   
   JSON形式のみで回答し、説明文は含めないでください。`;
 }
@@ -413,7 +413,7 @@ function parseDecompositionResult(claudeOutput: string): SubTask[] {
 
     return result.subtasks.map((task) => ({
       id: task.id,
-      description: task.description,
+      description: `${task.description} (${task.mode})`,
       mode: task.mode,
       priority: task.priority,
       dependencies: task.dependencies,
