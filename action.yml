@@ -17,7 +17,7 @@ inputs:
   allowed_tools:
     description: "Comma-separated list of allowed tools for Claude Code to use"
     required: false
-    default: ""
+    default: "Bash(*),View,GlobTool,GrepTool,BatchTool,Write,Edit"
   disallowed_tools:
     description: "Comma-separated list of disallowed tools that Claude Code cannot use"
     required: false
