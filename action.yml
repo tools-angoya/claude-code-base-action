@@ -59,7 +59,7 @@ inputs:
   use_oauth:
     description: "Use Claude AI OAuth authentication instead of API key"
     required: false
-    default: "false"
+    default: "true"
   claude_access_token:
     description: "Claude AI OAuth access token (required when use_oauth is true)"
     required: false
