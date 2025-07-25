@@ -32,15 +32,6 @@ async function run() {
       }
     }
 
-    // Setup OAuth credentials if using OAuth authentication
-    if (process.env.CLAUDE_CODE_USE_OAUTH === "1") {
-      await setupOAuthCredentials({
-        accessToken: process.env.CLAUDE_ACCESS_TOKEN!,
-        refreshToken: process.env.CLAUDE_REFRESH_TOKEN!,
-        expiresAt: process.env.CLAUDE_EXPIRES_AT!,
-      });
-    }
-
     const promptConfig = await preparePrompt({
       prompt: process.env.INPUT_PROMPT || "",
       promptFile: process.env.INPUT_PROMPT_FILE || "",
