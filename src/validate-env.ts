@@ -1,4 +1,4 @@
-C/**
+/**
  * Validates the environment variables required for running Claude Code
  * based on the selected provider (Anthropic API, AWS Bedrock, or Google Vertex AI)
  */
