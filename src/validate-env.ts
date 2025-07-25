@@ -1,4 +1,4 @@
-/**
+C/**
  * Validates the environment variables required for running Claude Code
  * based on the selected provider (Anthropic API, AWS Bedrock, or Google Vertex AI)
  */
@@ -28,9 +28,7 @@ export function validateEnvironmentVariables() {
     }
   } else if (useOAuth) {
     const requiredOAuthVars = {
-      CLAUDE_ACCESS_TOKEN: process.env.CLAUDE_ACCESS_TOKEN,
-      CLAUDE_REFRESH_TOKEN: process.env.CLAUDE_REFRESH_TOKEN,
-      CLAUDE_EXPIRES_AT: process.env.CLAUDE_EXPIRES_AT,
+      CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN,
     };
 
     Object.entries(requiredOAuthVars).forEach(([key, value]) => {
