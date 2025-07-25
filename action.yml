@@ -60,16 +60,8 @@ inputs:
     description: "Use Claude AI OAuth authentication instead of API key"
     required: false
     default: "true"
-  claude_access_token:
-    description: "Claude AI OAuth access token (required when use_oauth is true)"
-    required: false
-    default: ""
-  claude_refresh_token:
-    description: "Claude AI OAuth refresh token (required when use_oauth is true)"
-    required: false
-    default: ""
-  claude_expires_at:
-    description: "Claude AI OAuth token expiration timestamp (required when use_oauth is true)"
+  claude_code_oauth_token:
+    description: "Claude OAuth token (required when use_oauth is true)"
     required: false
     default: ""
 
@@ -118,7 +110,7 @@ runs:
 
     - name: Install Claude Code
       shell: bash
-      run: npm install -g @anthropic-ai/claude-code@1.0.25
+      run: npm install -g @anthropic-ai/claude-code
 
     - name: Run Claude Code Action
       shell: bash
@@ -147,9 +139,7 @@ runs:
         CLAUDE_CODE_USE_OAUTH: ${{ inputs.use_oauth == 'true' && '1' || '' }}
 
         # OAuth configuration
-        CLAUDE_ACCESS_TOKEN: ${{ inputs.claude_access_token }}
-        CLAUDE_REFRESH_TOKEN: ${{ inputs.claude_refresh_token }}
-        CLAUDE_EXPIRES_AT: ${{ inputs.claude_expires_at }}
+        CLAUDE_CODE_OAUTH_TOKEN: ${{ inputs.claude_code_oauth_token }}
 
         # AWS configuration
         AWS_REGION: ${{ env.AWS_REGION }}
